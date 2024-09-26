@@ -104,10 +104,12 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
+			sender := c.conn.RemoteAddr().String()
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
+				w.Write([]byte(sender))
 				w.Write(<-c.send)
 			}
 

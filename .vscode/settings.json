@@ -1,0 +1,15 @@
+{
+    "[go]": {
+      "editor.tabSize": 2,
+    },
+    "[html]": {
+      "editor.tabSize": 2
+    },
+    "[css]": {
+      "editor.tabSize": 2,
+    },
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true
+  }
