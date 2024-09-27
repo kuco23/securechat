@@ -1,2 +1,8 @@
 certs/
 .env
+
+node_modules/
+dist/
+
+.env
+cert/

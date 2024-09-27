@@ -1,119 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
 
-  <title>Chat Example</title>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'>
-    <script type="text/javascript">
+<title>Chat Example</title>
 
-      window.onload = function () {
-        var conn;
-        var msg = document.getElementById("msg");
-        var log = document.getElementById("log");
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'>
+  <script type="text/javascript">
 
-        function appendMsg(msg) {
+    window.onload = function () {
+      const COOKIE_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;  // 1 week
+
+      let conn;
+      let msg = document.getElementById("msg");
+      let log = document.getElementById("log");
+      let lastSender;
+
+      function setCookie(name, value) {
+        const date = new Date();
+        date.setTime(date.getTime() + COOKIE_EXPIRATION_MS);
+        const expires = `; expires=${date.toUTCString()}`;
+        document.cookie = `${name}=${value || ""}${expires}; path=/`;
+      }
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+      }
+
+      function appendSender(encsender) {
+        const sender = encsender.split(':')[0];
+        if (lastSender !== sender) {
+          console.log(sender)
+          const color = `rgba(${sender.replace(/\./g, ',')})`;
+          console.log(color)
           const item = document.createElement("div");
-          item.innerText = msg;
+          item.innerText = `${sender}`;
+          item.style.color = color;
           document.getElementById("chat").appendChild(item);
+          const hr = document.createElement("hr");
+          hr.style.color = color;
+          document.getElementById("chat").appendChild(hr);
+          lastSender = sender;
         }
+      }
 
-        document.getElementById("send").onclick = function () {
-          if (!conn) {
-            return false;
-          }
-          if (!msg.value) {
-            return false;
-          }
-          conn.send(msg.value);
-          msg.value = "";
+      function appendMsg(msg) {
+        const item = document.createElement("div");
+        item.innerText = msg;
+        document.getElementById("chat").appendChild(item);
+      }
+
+      function onClick() {
+        if (!conn) {
           return false;
-        };
+        }
+        if (!msg.value) {
+          return false;
+        }
+        conn.send(msg.value);
+        msg.value = "";
+        return true;
+      }
 
+      function connect(xApiKey) {
         if (window["WebSocket"]) {
-          conn = new WebSocket(`wss://fuckme.life:8443/ws`);
+          conn = new WebSocket(`wss://fuckme.life:8443/ws?x-api-key=${xApiKey}`);
           conn.onclose = function (evt) {
-            console.log('Connection closed');
+            appendMsg('Connection closed', '255.0.0.1')
           };
           conn.onmessage = function (evt) {
-            console.log(evt)
-            var messages = evt.data.split('\n');
-            for (var i = 0; i < messages.length; i++) {
+            const messages = evt.data.split('\n');
+            console.log(messages)
+            const n = messages.length
+            if (n <= 1) return
+            appendSender(messages[0]);
+            for (let i = 1; i < n; i++) {
               appendMsg(messages[i])
             }
           };
+          document.getElementById("send").onclick = onClick
+          document.getElementById("msg").addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') onClick()
+          })
         } else {
-          console.log("<b>Your browser does not support WebSockets.</b>");
+          console.log("<b>Your browser does not support WebSockets.</b>")
         }
-      };
-
-    </script>
-
-    <style type="text/css">
-
-      * { box-sizing: border-box; }
-
-      body {
-        background: black;
-        font-family: monospace;
       }
 
-      .border {
-        border: 2px solid firebrick;
+      let xApiKey = getCookie('x-api-key')
+      if (xApiKey === null) {
+        document.getElementById('section-chat').style.display = "none"
+        document.getElementById('section-chat').style.display = "block"
+        document.getElementById('submit-x-api-key').onclick = function () {
+          xApiKey = document.getElementById('input-x-api-key').value
+          setCookie('x-api-key', xApiKey)
+          document.getElementById('section-chat').style.display = "block"
+          document.getElementById('section-auth').style.display = "none"
+          connect(xApiKey)
+        }
+      } else {
+        document.getElementById('section-auth').style.display = "none"
+        document.getElementById('section-chat').style.display = "block"
+        connect(xApiKey)
       }
 
-      .align-left {
-        text-align: left;
-      }
+    };
 
-      .outer-container {
-        padding: 20px;
-      }
+  </script>
 
-      .hacky-input, .hacky-submit {
-        text-decoration: none;
-        line-height: 20px;
-        color: white;
-        padding: 10px;
-        font-size: 20px;
-      }
+  <style type="text/css">
+    * {
+      box-sizing: border-box;
+    }
 
-      .hacky-input:focus {
-        outline: none;
-      }
+    body {
+      background: black;
+      font-family: monospace;
+    }
 
-      .hacky-input {
-        width: 100%;
-        background: black;
-      }
+    .border {
+      border: 2px solid firebrick;
+    }
 
-      .hacky-submit {
-        width: 100%;
-        background: black;
-      }
+    .align-left {
+      text-align: left;
+    }
 
-      .hacky-submit:hover {
-        background: FireBrick;
-      }
+    .outer-container {
+      padding: 20px;
+    }
 
-      .mt-15 {
-        margin-top: 15px;
-      }
+    .hacky-input,
+    .hacky-submit {
+      text-decoration: none;
+      line-height: 20px;
+      color: white;
+      padding: 10px;
+      font-size: 20px;
+    }
 
-      .my-0 {
-        margin-top: 0;
-        margin-bottom: 0;
-      }
+    .hacky-input:focus {
+      outline: none;
+    }
 
-    </style>
-  </head>
+    .hacky-input {
+      width: 100%;
+      background: black;
+    }
 
-  <body>
-    <div class="container-fluid outer-container" style="text-align: center;">
+    .hacky-submit {
+      width: 100%;
+      background: black;
+    }
 
+    .hacky-submit:hover {
+      background: FireBrick;
+    }
+
+    .mt-15 {
+      margin-top: 15px;
+    }
+
+    .my-0 {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container-fluid outer-container" style="text-align: center;">
+    <h1>SECURECHAT</h1>
+
+    <section id="section-chat">
       <div class="container mt-15">
-        <h1>SECURECHAT</h1>
-        <textarea id="msg" class="hacky-input border" rows="5" placeholder="Secured text"></textarea>
+        <textarea id="msg" class="hacky-input border" rows="5" placeholder="Secured text" maxlength="100"></textarea>
         <input id="send" class="hacky-submit" style="border: none;" type="submit" value="send msg" />
       </div>
 
@@ -121,9 +186,18 @@
         <div id="chat" class="hacky-input align-left">
         </div>
       </div>
+    </section>
 
-      <div id="log"></div>
+    <section id="section-auth">
+      <div class="container mt-15">
+        <input id="input-x-api-key" class="hacky-input border" type="password" placeholder="Password" />
+        <input id="submit-x-api-key" class="hacky-submit" style="border: none;" type="submit" value="submit" />
+      </div>
+    </section>
 
-    </div>
-  </body>
+    <div id="log"></div>
+
+  </div>
+</body>
+
 </html>

@@ -6,7 +6,6 @@ package main
 
 import (
 	"crypto/tls"
-	"flag"
 	"log"
 	"net/http"
 
@@ -14,19 +13,6 @@ import (
 
 	"github.com/joho/godotenv"
 )
-
-func serveHome(w http.ResponseWriter, r *http.Request) {
-	log.Print(r)
-	if r.URL.Path != "/" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	http.ServeFile(w, r, "home.html")
-}
 
 func serveTLS(certPubPath string, certKeyPath string) {
 	// Create TLS configuration (for development or production)
@@ -47,18 +33,17 @@ func serveTLS(certPubPath string, certKeyPath string) {
 }
 
 func main() {
+	xApiKey := os.Getenv("X_API_KEY")
 
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	flag.Parse()
 	hub := newHub()
 	go hub.run()
-	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+		serveWs(hub, w, r, xApiKey)
 	})
 
 	certPathPub := os.Getenv("CERT_PUB_PATH")
