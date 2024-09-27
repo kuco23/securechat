@@ -93,7 +93,7 @@
       let xApiKey = getCookie('x-api-key')
       if (xApiKey === null) {
         document.getElementById('section-chat').style.display = "none"
-        document.getElementById('section-chat').style.display = "block"
+        document.getElementById('section-auth').style.display = "block"
         document.getElementById('submit-x-api-key').onclick = function () {
           xApiKey = document.getElementById('input-x-api-key').value
           setCookie('x-api-key', xApiKey)

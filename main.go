@@ -33,12 +33,15 @@ func serveTLS(certPubPath string, certKeyPath string) {
 }
 
 func main() {
-	xApiKey := os.Getenv("X_API_KEY")
 
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	xApiKey := os.Getenv("X_API_KEY")
+	certPathPub := os.Getenv("CERT_PUB_PATH")
+	certPathKey := os.Getenv("CERT_KEY_PATH")
 
 	hub := newHub()
 	go hub.run()
@@ -46,7 +49,5 @@ func main() {
 		serveWs(hub, w, r, xApiKey)
 	})
 
-	certPathPub := os.Getenv("CERT_PUB_PATH")
-	certPathKey := os.Getenv("CERT_KEY_PATH")
 	serveTLS(certPathPub, certPathKey)
 }
