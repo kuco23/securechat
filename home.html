@@ -155,28 +155,17 @@
       }
 
       function onReceivedMsg(msg) {
-        const [sender, messages] = decodeSenderAndMsgs(msg)
-        if (owner === undefined && lastSend === messages[0]) {
-          owner = sender
-        }
-        console.log(owner, sender, messages)
-        if (owner !== sender && messages !== undefined && sender !== undefined) {
-          writeSender(sender)
-          for (const msg of messages) {
-            writeReceivedMsg(msg)
-          }
+        const messagelist = msg.split('\n')
+        for (let i = 0; 2 * i < messagelist.length; i++) {
+          const senderIsOwner = messagelist[2 * i]
+          const message = messagelist[2 * i + 1]
+          writeReceivedMsg(message, senderIsOwner)
         }
       }
 
-      function decodeSenderAndMsgs(msg) {
-        const messages = msg.split('\n');
-        const n = messages.length
-        if (n <= 1) return [undefined, undefined]
-        return [messages[0], messages.slice(1)]
-      }
-
-      function writeReceivedMsg(msg) {
-        chat.innerText = msg
+      function writeReceivedMsg(msg, owner) {
+        if (owner === "false")
+          chat.innerText = msg
       }
 
       function writeSender(sender) {
