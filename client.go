@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -48,7 +49,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan []byte
+	send chan Message
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -76,7 +77,7 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+		c.hub.broadcast <- Message{message, c}
 	}
 }
 
@@ -106,15 +107,17 @@ func (c *Client) writePump() {
 				return
 			}
 
-			sender := c.conn.RemoteAddr().String()
-			w.Write([]byte(sender))
+			w.Write([]byte(strconv.FormatBool(c == message.sender)))
 			w.Write(newline)
-			w.Write(message)
+			w.Write(message.data)
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
+				message = <-c.send
 				w.Write(newline)
-				w.Write(<-c.send)
+				w.Write([]byte(strconv.FormatBool(c == message.sender)))
+				w.Write(newline)
+				w.Write(message.data)
 			}
 
 			if err := w.Close(); err != nil {
@@ -133,7 +136,7 @@ func (c *Client) writePump() {
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
 	queryParams := r.URL.Query()
 	apiKey := queryParams.Get("x-api-key")
-	if (apiKey != xak) {
+	if apiKey != xak {
 		http.Error(w, "403 Forbidden", http.StatusForbidden)
 		return
 	}
@@ -142,7 +145,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{hub: hub, conn: conn, send: make(chan Message, 256)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
