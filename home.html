@@ -39,8 +39,7 @@
       font-family: monospace;
     }
 
-    .side-left-inner,
-    .side-right-inner {
+    .center {
       position: relative;
       transform: none;
       display: flex;
@@ -77,7 +76,38 @@
       color: black;
     }
 
-    /* ******************** disable input style ******************* */
+    /* ******************** style auth ******************* */
+
+    .overlay {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1;
+    }
+
+    .auth-input,
+    .auth-submit {
+      width: 400px;
+      font-size: 20px;
+      padding: 10px;
+      margin: 0;
+      border: none;
+    }
+
+    .auth-input {
+      text-align: left;
+    }
+
+    .auth-submit {
+      text-align: center;
+    }
+
+    .auth-submit:hover {
+      cursor: pointer;
+    }
+
+    /* ******************** style inputs ******************* */
 
     input,
     textarea {
@@ -88,7 +118,8 @@
     }
 
     input:focus,
-    textarea:focus {
+    textarea:focus,
+    button {
       outline: none;
     }
 
@@ -100,11 +131,12 @@
 
     /** ******************* responsive ******************* */
 
-    @media only screen and (max-width: 600px) {
+    @media only screen and (max-width: 1000px) {
 
       div.side-left,
       div.side-right {
         width: 100%;
+        height: 50%;
         border: none;
       }
 
@@ -116,6 +148,14 @@
         border-top: 2px solid black;
       }
     }
+
+    @media only screen and (max-width: 600px) {
+
+      .auth-input,
+      .auth-submit {
+        width: 75%;
+      }
+    }
   </style>
 
   <script type="text/javascript">
@@ -125,21 +165,38 @@
     window.onload = function () {
       let conn
       let msg = document.getElementById("msg")
-      let log = document.getElementById("log")
       let cht = document.getElementById("chat")
       let snd = document.getElementById("sender")
-      let lastSender
-      let lastSend
-      let owner
+
+      function activateChat() {
+        const overlay = document.getElementById('overlay')
+        overlay.style.display = "none"
+      }
+
+      function deactivateChat() { }
+
+      function activateOverlay() {
+        const overlay = document.getElementById('overlay')
+        overlay.style.display = "block"
+      }
 
       function connect(xApiKey) {
         if (window["WebSocket"]) {
-          conn = new WebSocket(`wss://fuckme.life:8443/ws?x-api-key=${xApiKey}`);
+          conn = new WebSocket(`wss://fuckme.life:8443/ws?x-api-key=${xApiKey}`)
+          conn.onopen = function (evt) {
+            setCookie('x-api-key', xApiKey)
+            activateChat()
+          }
+          conn.onmessage = function (evt) {
+            onReceivedMsg(evt.data)
+          }
           conn.onclose = function (evt) {
+            console.log('closed')
             // todo: display on close and retry
           }
-          conn.onmessage = (evt) => onReceivedMsg(evt.data)
-          msg.addEventListener('input', function (evt) { sendMsg(this.value) })
+          msg.addEventListener('input', function (evt) {
+            sendMsg(this.value)
+          })
         } else {
           console.log("<b>Your browser does not support WebSockets.</b>")
         }
@@ -148,7 +205,6 @@
       function sendMsg(value) {
         if (conn) {
           conn.send(value)
-          lastSend = value
           return true
         }
         return false
@@ -168,16 +224,6 @@
           chat.innerText = msg
       }
 
-      function writeSender(sender) {
-        return
-        if (lastSender !== sender) {
-          const color = `rgba(${sender.replace(/\./g, ',')})`
-          sender.innerText = sender
-          sender.style.color = color
-          lastSender = sender
-        }
-      }
-
       function setCookie(name, value) {
         const date = new Date()
         date.setTime(date.getTime() + COOKIE_EXPIRATION_MS)
@@ -192,21 +238,15 @@
         return null
       }
 
-      let xApiKey = '1Cug9VmmCglkapMt4r2sHxtK2i8' //getCookie('x-api-key')
+      let xApiKey = getCookie('x-api-key')
       if (xApiKey === null) {
         console.log('no x-api-key found')
-        document.getElementById('section-chat').style.display = "none"
-        document.getElementById('section-auth').style.display = "block"
+        activateOverlay()
         document.getElementById('submit-x-api-key').onclick = function () {
           xApiKey = document.getElementById('input-x-api-key').value
-          setCookie('x-api-key', xApiKey)
-          document.getElementById('section-chat').style.display = "block"
-          document.getElementById('section-auth').style.display = "none"
           connect(xApiKey)
         }
       } else {
-        document.getElementById('section-auth').style.display = "none"
-        document.getElementById('section-chat').style.display = "block"
         connect(xApiKey)
       }
     }
@@ -216,31 +256,32 @@
 
 <body>
 
-  <section id="section-auth">
-    <div class="container mt-15">
-      <input id="input-x-api-key" class="hacky-input border" type="password" placeholder="Password" />
-      <input id="submit-x-api-key" class="hacky-submit" style="border: none;" type="submit" value="submit" />
-    </div>
-  </section>
-
   <section id="section-chat">
+
     <div class="side-left">
-      <div class="side-left-inner">
+      <div class="center">
         <div class="container-msg">
           <textarea id="msg" class="hacky-input border" rows="5" placeholder="Secured text" maxlength="100"></textarea>
         </div>
       </div>
     </div>
+
     <div class="side-right">
-      <div class="side-right-inner">
+      <div class="center">
         <div class="container-chat">
           <span id="chat"></span>
         </div>
       </div>
     </div>
-  </section>
 
-  <div id="log"></div>
+    <div id="overlay" class="overlay">
+      <div class="center">
+        <input id="input-x-api-key" class="auth-input" type="password" placeholder="CHAT KEY">
+        <button id="submit-x-api-key" class="auth-submit">Submit</button>
+      </div>
+    </div>
+
+  </section>
 
 </body>
 
