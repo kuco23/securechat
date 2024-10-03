@@ -1,14 +1,9 @@
-// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
 	"bytes"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -50,6 +45,10 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	send chan Message
+
+	id string
+
+	roomID string
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -107,15 +106,20 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w.Write([]byte(strconv.FormatBool(c == message.sender)))
-			w.Write(newline)
-			w.Write(message.data)
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				message = <-c.send
-				w.Write(newline)
-				w.Write([]byte(strconv.FormatBool(c == message.sender)))
+			if message.sender == nil {
+				// message is comming from the server
+				w.Write(message.data)
+			} else {
+				// write only the last message
+				n := len(c.send)
+				for i := 0; i < n; i++ {
+					message = <-c.send
+				}
+				flag := ZERO_BYTE
+				if c == message.sender {
+					flag = ONE_BYTE
+				}
+				w.Write(flag)
 				w.Write(newline)
 				w.Write(message.data)
 			}
@@ -145,7 +149,13 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan Message, 256)}
+	client := &Client{
+		hub:    hub,
+		conn:   conn,
+		send:   make(chan Message, 256),
+		id:     r.RemoteAddr,
+		roomID: apiKey,
+	}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

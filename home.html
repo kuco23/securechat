@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<title>Chat Example</title>
+<title>securechat</title>
 
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -63,6 +63,7 @@
     }
 
     #msg {
+      display: none;
       background-color: transparent;
       color: white;
     }
@@ -74,13 +75,11 @@
     /* ******************** status ******************* */
 
     .side-left-status {
-      display: none;
       background-color: black;
       animation: beat-white 1.5s alternate infinite;
     }
 
     .side-right-status {
-      display: none;
       background-color: white;
       animation: beat-black 1.5s alternate infinite;
     }
@@ -287,7 +286,13 @@
             onReceivedMsg(evt.data)
           }
           msg.addEventListener('input', function (evt) {
-            sendMsg(this.value)
+            const key = evt.key
+            const val = this.value
+            if (key === 'Enter') {
+              this.value = val.replace(/\n/g, '');
+            } else {
+              sendMsg(val)
+            }
           })
         } else {
           alert("Your browser does not support WebSockets")
@@ -304,16 +309,25 @@
 
       function onReceivedMsg(msg) {
         const messagelist = msg.split('\n')
-        for (let i = 0; 2 * i < messagelist.length; i++) {
-          const senderIsOwner = messagelist[2 * i]
-          const message = messagelist[2 * i + 1]
-          writeReceivedMsg(message, senderIsOwner)
+        if (messagelist.length === 1) {
+          // comming from server
+          if (messagelist[0] === "0") {
+            connected(false)
+          }
+        } else {
+          // comming from user
+          for (let i = 0; 2 * i < messagelist.length; i++) {
+            const senderIsOwner = messagelist[2 * i]
+            const message = messagelist[2 * i + 1]
+            writeReceivedMsg(message, senderIsOwner)
+          }
         }
       }
 
       function writeReceivedMsg(msg, owner) {
-        if (owner === "false")
+        if (owner === "0") {
           chat.innerText = msg
+        }
       }
 
       /* ***************** cookies ***************** */
