@@ -6,12 +6,14 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style type="text/css">
-    * {
-      box-sizing: border-box;
-    }
+    /* ******************** global ******************* */
 
     :root {
       color-scheme: light only;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     html,
@@ -23,31 +25,24 @@
       height: 100%;
     }
 
+    /* ******************** positions ******************* */
+
+    .side-left,
+    .side-right {
+      position: relative;
+      width: 50%;
+      height: 100%;
+      font-family: monospace;
+    }
+
     .side-left {
       float: left;
-      height: 100%;
-      width: 50%;
       background-color: black;
-      font-family: monospace;
     }
 
     .side-right {
       float: right;
-      height: 100%;
-      width: 50%;
       background-color: white;
-      font-family: monospace;
-    }
-
-    .center {
-      position: relative;
-      transform: none;
-      display: flex;
-      flex-flow: column wrap;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-      width: 100%;
     }
 
     .container-msg,
@@ -64,7 +59,7 @@
       height: 50%;
       text-align: center;
       margin: auto;
-      word-break: break-all;
+      word-break: break-word;
     }
 
     #msg {
@@ -76,22 +71,28 @@
       color: black;
     }
 
-    /* ******************** style auth ******************* */
+    /* ******************** status ******************* */
 
-    .overlay {
-      position: absolute;
-      height: 100%;
-      width: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1;
+    .side-left-status {
+      display: none;
+      background-color: black;
+      animation: beat-white 1.5s alternate infinite;
     }
+
+    .side-right-status {
+      display: none;
+      background-color: white;
+      animation: beat-black 1.5s alternate infinite;
+    }
+
+    /* ******************** auth ******************* */
 
     .auth-input,
     .auth-submit {
       width: 400px;
-      font-size: 20px;
-      padding: 10px;
       margin: 0;
+      padding: 10px;
+      font-size: 20px;
       border: none;
     }
 
@@ -107,7 +108,7 @@
       cursor: pointer;
     }
 
-    /* ******************** style inputs ******************* */
+    /* ******************** inputs ******************* */
 
     input,
     textarea {
@@ -129,7 +130,64 @@
       line-height: inherit
     }
 
-    /** ******************* responsive ******************* */
+    /* ******************** reusables ******************* */
+
+    .center-children {
+      position: relative;
+      transform: none;
+      display: flex;
+      flex-flow: column wrap;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    .center-float {
+      position: absolute;
+      top: 50%;
+      right: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .circle {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+    }
+
+    .overlay {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1;
+    }
+
+    /* ******************* animations ******************* */
+
+    @keyframes beat-white {
+      0% {
+        box-shadow: 0 0 10px 0px white;
+      }
+
+      100% {
+        box-shadow: 0 0 10px 5px white;
+      }
+    }
+
+    @keyframes beat-black {
+      0% {
+        box-shadow: 0 0 10px 0px black;
+      }
+
+      100% {
+        box-shadow: 0 0 10px 5px black;
+      }
+    }
+
+
+    /* ******************* responsive ******************* */
 
     @media only screen and (max-width: 1000px) {
 
@@ -160,45 +218,79 @@
 
   <script type="text/javascript">
 
+    const SOCKET_URL = 'wss://fuckme.life:8443/ws'
     const COOKIE_EXPIRATION_MS = 1000 * 60 * 60  // 1 hour
+    const RECONNECT_PERIOD_MS = 5 * 1000 // 5 seconds
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    }
 
     window.onload = function () {
       let conn
       let msg = document.getElementById("msg")
       let cht = document.getElementById("chat")
       let snd = document.getElementById("sender")
+      let sls = document.getElementById("side-left-status")
+      let srs = document.getElementById("side-right-status")
+      let overlay = document.getElementById("overlay")
+
+      /* ***************** frontend marks ***************** */
 
       function activateChat() {
-        const overlay = document.getElementById('overlay')
         overlay.style.display = "none"
+        msg.style.display = "block"
       }
-
-      function deactivateChat() { }
 
       function activateOverlay() {
-        const overlay = document.getElementById('overlay')
         overlay.style.display = "block"
+        msg.style.display = "none"
       }
+
+      function reconnecting(owner) {
+        const status = owner ? sls : srs
+        status.style.display = "block"
+        msg.style.display = "none"
+      }
+
+      function connected(owner) {
+        const status = owner ? sls : srs
+        status.style.display = "none"
+        msg.style.display = "block"
+      }
+
+      function disconnected(owner) {
+
+      }
+
+      /* ***************** socket logic ***************** */
 
       function connect(xApiKey) {
         if (window["WebSocket"]) {
-          conn = new WebSocket(`wss://fuckme.life:8443/ws?x-api-key=${xApiKey}`)
+          conn = new WebSocket(`${SOCKET_URL}?x-api-key=${xApiKey}`)
           conn.onopen = function (evt) {
             setCookie('x-api-key', xApiKey)
             activateChat()
+            connected(true)
+          }
+          conn.onclose = async function (evt) {
+            reconnecting(true)
+            if (evt.code === 1006) {
+              disconnected(true)
+            } else {
+              console.error('reconnecting')
+              await sleep(RECONNECT_PERIOD_MS)
+              connect()
+            }
           }
           conn.onmessage = function (evt) {
             onReceivedMsg(evt.data)
-          }
-          conn.onclose = function (evt) {
-            console.log('closed')
-            // todo: display on close and retry
           }
           msg.addEventListener('input', function (evt) {
             sendMsg(this.value)
           })
         } else {
-          console.log("<b>Your browser does not support WebSockets.</b>")
+          alert("Your browser does not support WebSockets")
         }
       }
 
@@ -224,6 +316,8 @@
           chat.innerText = msg
       }
 
+      /* ***************** cookies ***************** */
+
       function setCookie(name, value) {
         const date = new Date()
         date.setTime(date.getTime() + COOKIE_EXPIRATION_MS)
@@ -238,9 +332,10 @@
         return null
       }
 
+      /* ***************** main ***************** */
+
       let xApiKey = getCookie('x-api-key')
       if (xApiKey === null) {
-        console.log('no x-api-key found')
         activateOverlay()
         document.getElementById('submit-x-api-key').onclick = function () {
           xApiKey = document.getElementById('input-x-api-key').value
@@ -250,7 +345,6 @@
         connect(xApiKey)
       }
     }
-
   </script>
 </head>
 
@@ -259,15 +353,21 @@
   <section id="section-chat">
 
     <div class="side-left">
-      <div class="center">
+      <div class="center-float">
+        <div id="side-left-status" class="circle side-left-status"></div>
+      </div>
+      <div class="center-children">
         <div class="container-msg">
-          <textarea id="msg" class="hacky-input border" rows="5" placeholder="Secured text" maxlength="100"></textarea>
+          <textarea id="msg" class="hacky-input border" rows="5" maxlength="100" autofocus></textarea>
         </div>
       </div>
     </div>
 
     <div class="side-right">
-      <div class="center">
+      <div class="center-float">
+        <div id="side-right-status" class="circle side-right-status"></div>
+      </div>
+      <div class="center-children">
         <div class="container-chat">
           <span id="chat"></span>
         </div>
@@ -275,7 +375,7 @@
     </div>
 
     <div id="overlay" class="overlay">
-      <div class="center">
+      <div class="center-children">
         <input id="input-x-api-key" class="auth-input" type="password" placeholder="CHAT KEY">
         <button id="submit-x-api-key" class="auth-submit">Submit</button>
       </div>
