@@ -236,11 +236,6 @@
 
       /* ***************** frontend marks ***************** */
 
-      function activateChat() {
-        overlay.style.display = "none"
-        msg.style.display = "block"
-      }
-
       function activateOverlay() {
         overlay.style.display = "block"
         msg.style.display = "none"
@@ -250,12 +245,15 @@
         const status = owner ? sls : srs
         status.style.display = "block"
         msg.style.display = "none"
+        if (!owner) cht.innerText = ""
       }
 
       function connected(owner) {
+        overlay.style.display = "none"
+        msg.style.display = "block"
         const status = owner ? sls : srs
         status.style.display = "none"
-        msg.style.display = "block"
+        if (owner) msg.focus()
       }
 
       function disconnected(owner) {
@@ -269,7 +267,6 @@
           conn = new WebSocket(`${SOCKET_URL}?x-api-key=${xApiKey}`)
           conn.onopen = function (evt) {
             setCookie('x-api-key', xApiKey)
-            activateChat()
             connected(true)
           }
           conn.onclose = async function (evt) {
@@ -283,6 +280,7 @@
             }
           }
           conn.onmessage = function (evt) {
+            console.log(evt.data)
             onReceivedMsg(evt.data)
           }
           msg.addEventListener('input', function (evt) {
@@ -348,7 +346,7 @@
 
       /* ***************** main ***************** */
 
-      let xApiKey = getCookie('x-api-key')
+      let xApiKey = 'GqlKzY6YMkztT8ejJ84mmUHyOQ' // getCookie('x-api-key')
       if (xApiKey === null) {
         activateOverlay()
         document.getElementById('submit-x-api-key').onclick = function () {
