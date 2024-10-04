@@ -253,7 +253,8 @@
         msg.style.display = "block"
         const status = owner ? sls : srs
         status.style.display = "none"
-        if (owner) msg.focus()
+        if (owner)
+          msg.focus()
       }
 
       function disconnected(owner) {
@@ -308,10 +309,11 @@
       function onReceivedMsg(msg) {
         const messagelist = msg.split('\n')
         if (messagelist.length === 1) {
-          // comming from server
-          if (messagelist[0] === "0") {
+          // flags comming from server
+          const flag = messagelist[0]
+          if (flag === "0") {
             connected(false)
-          } else if (messagelist[0] === "1") {
+          } else if (flag === "1") {
             reconnecting(false)
           }
         } else {
