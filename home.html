@@ -311,6 +311,8 @@
           // comming from server
           if (messagelist[0] === "0") {
             connected(false)
+          } else if (messagelist[0] === "1") {
+            reconnecting(false)
           }
         } else {
           // comming from user
@@ -346,7 +348,7 @@
 
       /* ***************** main ***************** */
 
-      let xApiKey = 'GqlKzY6YMkztT8ejJ84mmUHyOQ' // getCookie('x-api-key')
+      let xApiKey = getCookie('x-api-key')
       if (xApiKey === null) {
         activateOverlay()
         document.getElementById('submit-x-api-key').onclick = function () {

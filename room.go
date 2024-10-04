@@ -19,7 +19,7 @@ func (r *Room) add(client *Client) {
 		}
 		r.client1 = client
 		if r.client2 != nil {
-			sendMessage(Message{data: ZERO_BYTE}, r.client2)
+			r._sendConnected()
 		}
 	} else if r.client2 == nil || r.client2.id == client.id {
 		if r.client2 != nil {
@@ -27,12 +27,10 @@ func (r *Room) add(client *Client) {
 		}
 		r.client2 = client
 		if r.client1 != nil {
-			sendMessage(Message{data: ZERO_BYTE}, r.client1)
+			r._sendConnected()
 		}
 	} else {
 		// danger
-		sendMessage(Message{data: ONE_BYTE}, r.client1)
-		sendMessage(Message{data: ONE_BYTE}, r.client2)
 		close(client.send)
 	}
 }
@@ -64,4 +62,9 @@ func (r *Room) broadcast(sender *Client, message Message) {
 		// danger
 		close(sender.send)
 	}
+}
+
+func (r *Room) _sendConnected() {
+	sendMessage(Message{data: ZERO_BYTE}, r.client1)
+	sendMessage(Message{data: ZERO_BYTE}, r.client2)
 }
