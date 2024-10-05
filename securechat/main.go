@@ -10,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func serveTLS(certPubPath string, certKeyPath string) {
+func serveWithTLS(certPubPath string, certKeyPath string) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
@@ -36,13 +36,13 @@ func main() {
 	certPathPub := os.Getenv("CERT_PUB_PATH")
 	certPathKey := os.Getenv("CERT_KEY_PATH")
 
-	// serve TLS
-	serveTLS(certPathPub, certPathKey)
-
-	// serve ws
+	// define wss handle
 	hub := NewHub()
 	go hub.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ServeWs(hub, w, r, xApiKey)
 	})
+
+	// serve http server with TLS
+	serveWithTLS(certPathPub, certPathKey)
 }

@@ -7,9 +7,9 @@ func newRoom(client *Client) *Room {
 func (r *Room) Add(client *Client) {
 	// check if one of the room clients reconnected
 	idx := 0
-	if client.id == r.client1.id {
+	if r.client1 != nil && client.id == r.client1.id {
 		idx = 1
-	} else if client.id == r.client2.id {
+	} else if r.client2 != nil && client.id == r.client2.id {
 		idx = 2
 	}
 	// handle reassignment
@@ -40,17 +40,17 @@ func (r *Room) Remove(client *Client) {
 		r.client1 = nil
 		if r.client2 != nil {
 			sendMessage(Message{data: ONE_BYTE}, r.client2)
+			close(client.send)
 		}
 	} else if r.client2 == client {
 		r.client2 = nil
 		if r.client1 != nil {
 			sendMessage(Message{data: ONE_BYTE}, r.client1)
+			close(client.send)
 		}
 	} else {
 		// danger
-		sendMessage(Message{data: ONE_BYTE}, client)
 	}
-	close(client.send)
 }
 
 func (r *Room) Broadcast(sender *Client, message Message) {
@@ -64,7 +64,6 @@ func (r *Room) Broadcast(sender *Client, message Message) {
 		}
 	} else {
 		// danger
-		close(sender.send)
 	}
 }
 

@@ -41,7 +41,6 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			if room, ok := h.rooms[client.roomID]; !ok {
 				// danger
-				close(client.send)
 			} else {
 				room.Remove(client)
 			}
@@ -49,7 +48,6 @@ func (h *Hub) Run() {
 			client := message.sender
 			if room, ok := h.rooms[client.roomID]; !ok {
 				// danger
-				close(client.send)
 			} else {
 				room.Broadcast(client, message)
 			}
