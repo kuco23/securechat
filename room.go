@@ -54,10 +54,14 @@ func (r *Room) remove(client *Client) {
 }
 
 func (r *Room) broadcast(sender *Client, message Message) {
-	if r.client1 == sender && r.client2 != nil {
-		sendMessage(message, r.client2)
-	} else if r.client2 == sender && r.client1 != nil {
-		sendMessage(message, r.client1)
+	if r.client1 == sender {
+		if r.client2 != nil {
+			sendMessage(message, r.client2)
+		}
+	} else if r.client2 == sender {
+		if r.client1 != nil {
+			sendMessage(message, r.client1)
+		}
 	} else {
 		// danger
 		close(sender.send)
