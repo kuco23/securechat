@@ -11,16 +11,13 @@ import (
 )
 
 func serveTLS(certPubPath string, certKeyPath string) {
-	// Create TLS configuration (for development or production)
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
-	// Create HTTPS server using TLS
 	server := &http.Server{
-		Addr:      ":8443", // TLS typically uses port 443 (or 8443 for development)
+		Addr:      ":8443",
 		TLSConfig: tlsConfig,
 	}
-	// Start the server with TLS
 	log.Printf("Starting TLS server on %v", server.Addr)
 	err := server.ListenAndServeTLS(certPubPath, certKeyPath)
 	if err != nil {
@@ -39,11 +36,13 @@ func main() {
 	certPathPub := os.Getenv("CERT_PUB_PATH")
 	certPathKey := os.Getenv("CERT_KEY_PATH")
 
-	hub := newHub()
-	go hub.run()
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r, xApiKey)
-	})
-
+	// serve TLS
 	serveTLS(certPathPub, certPathKey)
+
+	// serve ws
+	hub := NewHub()
+	go hub.Run()
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		ServeWs(hub, w, r, xApiKey)
+	})
 }

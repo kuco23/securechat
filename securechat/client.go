@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -136,11 +137,9 @@ func (c *Client) writePump() {
 	}
 }
 
-// serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
-	queryParams := r.URL.Query()
-	apiKey := queryParams.Get("x-api-key")
-	if apiKey != xak {
+func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
+	auth := chatAuth(r)
+	if auth != xak {
 		http.Error(w, "403 Forbidden", http.StatusForbidden)
 		return
 	}
@@ -150,11 +149,11 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
 		return
 	}
 	client := &Client{
+		id:     clientId(r),
+		roomID: auth,
 		hub:    hub,
 		conn:   conn,
 		send:   make(chan Message, 256),
-		id:     r.RemoteAddr,
-		roomID: apiKey,
 	}
 	client.hub.register <- client
 
@@ -162,4 +161,13 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+}
+
+func chatAuth(r *http.Request) string {
+	queryParams := r.URL.Query()
+	return queryParams.Get("x-api-key")
+}
+
+func clientId(r *http.Request) string {
+	return strings.Split(r.RemoteAddr, ":")[0]
 }
