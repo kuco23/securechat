@@ -284,7 +284,6 @@
             }
           }
           conn.onmessage = function (evt) {
-            console.log(evt.data)
             onReceivedMsg(evt.data)
           }
           msg.addEventListener('input', function (evt) {
