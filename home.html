@@ -218,8 +218,8 @@
   <script type="text/javascript">
 
     const urlParams = new URLSearchParams(window.location.search)
-    const SOCKET_URL = `wss://${document.location.host}/ws`
     const X_API_KEY = urlParams.get('x-api-key')
+    const SOCKET_URL = `wss://${document.location.host}/ws?x-api-key=${X_API_KEY}`
     const COOKIE_EXPIRATION_MS = 1000 * 60 * 60  // 1 hour
     const RECONNECT_PERIOD_MS = 5 * 1000 // 5 seconds
 
@@ -267,7 +267,7 @@
 
       function connect(prvk, pubk) {
         if (window["WebSocket"]) {
-          conn = new WebSocket(`${SOCKET_URL}?x-api-key=${X_API_KEY}`)
+          conn = new WebSocket(SOCKET_URL)
           conn.onopen = function (evt) {
             setCookie('prvk', prvk)
             setCookie('pubk', pubk)
@@ -378,6 +378,8 @@
         } else {
           connect(pubk, prvk)
         }
+      } else {
+        connect(undefined, undefined)
       }
     }
   </script>
