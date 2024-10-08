@@ -27,7 +27,7 @@ func serveWithTLS(certPubPath string, certKeyPath string) {
 }
 
 func ServeHome(w http.ResponseWriter, r *http.Request, xak string) {
-	if r.URL.Path != "/" || r.Method != http.MethodGet {
+	if r.URL.Path != "/securechat" || r.Method != http.MethodGet {
 		log.Printf("Wrong url path from %v", r.RemoteAddr)
 		return
 	}
@@ -86,7 +86,7 @@ func main() {
 	// define wss handle
 	hub := NewHub()
 	go hub.Run()
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/securechat", func(w http.ResponseWriter, r *http.Request) {
 		ServeHome(w, r, xApiKey)
 	})
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
