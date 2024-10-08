@@ -217,8 +217,9 @@
 
   <script type="text/javascript">
 
-    const SOCKET_URL = `wss://${document.location.host}:${document.location.port}/ws`
-    console.log(SOCKET_URL)
+    const urlParams = new URLSearchParams(window.location.search)
+    const SOCKET_URL = `wss://${document.location.host}/ws`
+    const X_API_KEY = urlParams.get('x-api-key')
     const COOKIE_EXPIRATION_MS = 1000 * 60 * 60  // 1 hour
     const RECONNECT_PERIOD_MS = 5 * 1000 // 5 seconds
 
@@ -264,11 +265,12 @@
 
       /* ***************** socket logic ***************** */
 
-      function connect(xApiKey) {
+      function connect(prvk, pubk) {
         if (window["WebSocket"]) {
-          conn = new WebSocket(`${SOCKET_URL}?x-api-key=${xApiKey}`)
+          conn = new WebSocket(`${SOCKET_URL}?x-api-key=${X_API_KEY}`)
           conn.onopen = function (evt) {
-            setCookie('x-api-key', xApiKey)
+            setCookie('prvk', prvk)
+            setCookie('pubk', pubk)
             connected(true)
           }
           conn.onclose = async function (evt) {
@@ -349,17 +351,33 @@
         return null
       }
 
+      /* **************** pubkeys ***************** */
+
+      function requiresAsym(key) {
+        return false
+      }
+
+      function missingApiKey() {
+        // not implemented
+      }
+
       /* ***************** main ***************** */
 
-      let xApiKey = getCookie('x-api-key')
-      if (xApiKey === null) {
-        activateOverlay()
-        document.getElementById('submit-x-api-key').onclick = function () {
-          xApiKey = document.getElementById('input-x-api-key').value
-          connect(xApiKey)
+      if (X_API_KEY === undefined) {
+        missingApiKey()
+      } else if (requiresAsym(X_API_KEY)) {
+        let pubk = getCookie('pubk')
+        let prvk = getCookie('prvk')
+        if (pubk === undefined || prvk === undefined) {
+          activateOverlay()
+          document.getElementById('submit-x-api-key').onclick = function () {
+            pubk = document.getElementById('input-x-api-key').value
+            prvk = document.getElementById('input-x-api-key').value
+            connect(pubk, prvk)
+          }
+        } else {
+          connect(pubk, prvk)
         }
-      } else {
-        connect(xApiKey)
       }
     }
   </script>
