@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"strings"
 
 	"os"
 
@@ -27,13 +28,48 @@ func serveWithTLS(certPubPath string, certKeyPath string) {
 
 func ServeHome(w http.ResponseWriter, r *http.Request, xak string) {
 	if r.URL.Path != "/" || r.Method != http.MethodGet {
+		log.Printf("Wrong url path from %v", r.RemoteAddr)
 		return
 	}
 	auth := chatAuth(r)
 	if auth != xak {
+		log.Printf("Failed auth for home request from %v", r.RemoteAddr)
 		return
 	}
 	http.ServeFile(w, r, "home.html")
+}
+
+func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
+	auth := chatAuth(r)
+	if auth != xak {
+		log.Printf("Forbidden auth for wss request from %v", r.RemoteAddr)
+		return
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	client := &Client{
+		id:     clientId(r),
+		roomID: auth,
+		hub:    hub,
+		conn:   conn,
+		send:   make(chan Message, 256),
+	}
+	client.hub.register <- client
+
+	go client.writePump()
+	go client.readPump()
+}
+
+func chatAuth(r *http.Request) string {
+	queryParams := r.URL.Query()
+	return queryParams.Get("x-api-key")
+}
+
+func clientId(r *http.Request) string {
+	return strings.Split(r.RemoteAddr, ":")[0]
 }
 
 func main() {

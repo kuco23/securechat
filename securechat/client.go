@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -135,37 +134,4 @@ func (c *Client) writePump() {
 			}
 		}
 	}
-}
-
-func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, xak string) {
-	auth := chatAuth(r)
-	if auth != xak {
-		http.Error(w, "403 Forbidden", http.StatusForbidden)
-		return
-	}
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	client := &Client{
-		id:     clientId(r),
-		roomID: auth,
-		hub:    hub,
-		conn:   conn,
-		send:   make(chan Message, 256),
-	}
-	client.hub.register <- client
-
-	go client.writePump()
-	go client.readPump()
-}
-
-func chatAuth(r *http.Request) string {
-	queryParams := r.URL.Query()
-	return queryParams.Get("x-api-key")
-}
-
-func clientId(r *http.Request) string {
-	return strings.Split(r.RemoteAddr, ":")[0]
 }
