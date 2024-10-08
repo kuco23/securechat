@@ -25,6 +25,17 @@ func serveWithTLS(certPubPath string, certKeyPath string) {
 	}
 }
 
+func ServeHome(w http.ResponseWriter, r *http.Request, xak string) {
+	if r.URL.Path != "/" || r.Method != http.MethodGet {
+		return
+	}
+	auth := chatAuth(r)
+	if auth != xak {
+		return
+	}
+	http.ServeFile(w, r, "home.html")
+}
+
 func main() {
 
 	err := godotenv.Load()
@@ -39,6 +50,9 @@ func main() {
 	// define wss handle
 	hub := NewHub()
 	go hub.Run()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ServeHome(w, r, xApiKey)
+	})
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ServeWs(hub, w, r, xApiKey)
 	})
