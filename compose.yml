@@ -1,6 +1,6 @@
 services:
   securechat:
-    image: securechat
+    image: ghcr.io/kuco23/securechat:main
     container_name: ${COMPOSE_PROJECT_NAME}
     environment:
       PORT: ${PORT}
