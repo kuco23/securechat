@@ -1,0 +1,14 @@
+services:
+  securechat:
+    image: securechat
+    container_name: ${COMPOSE_PROJECT_NAME}
+    environment:
+      PORT: ${PORT}
+      X_API_KEY: ${X_API_KEY}
+      CERT_PUB_PATH: /go/src/securechat/certs/cert.pem
+      CERT_KEY_PATH: /go/src/securechat/certs/key.pem
+    volumes:
+      - ${CERT_PUB_PATH}:/go/src/securechat/certs/cert.pem
+      - ${CERT_KEY_PATH}:/go/src/securechat/certs/key.pem
+    ports:
+      - "${PORT}:${PORT}"

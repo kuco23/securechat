@@ -1,8 +1,6 @@
 certs/
+cert/
 .env
 
 node_modules/
 dist/
-
-.env
-cert/

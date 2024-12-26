@@ -7,16 +7,15 @@ import (
 	"strings"
 
 	"os"
-
-	"github.com/joho/godotenv"
+	"strconv"
 )
 
-func serveWithTLS(certPubPath string, certKeyPath string) {
+func serveWithTLS(certPubPath string, certKeyPath string, port int) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
 	server := &http.Server{
-		Addr:      ":8443",
+		Addr:      ":" + strconv.Itoa(port),
 		TLSConfig: tlsConfig,
 	}
 	log.Printf("Starting TLS server on %v", server.Addr)
@@ -73,15 +72,15 @@ func clientId(r *http.Request) string {
 }
 
 func main() {
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
+	// load env vars
 	xApiKey := os.Getenv("X_API_KEY")
 	certPathPub := os.Getenv("CERT_PUB_PATH")
 	certPathKey := os.Getenv("CERT_KEY_PATH")
+	port, err := strconv.Atoi(os.Getenv("PORT"))
+
+	if err != nil {
+		log.Fatalf("Failed to read port from env: %v", err)
+	}
 
 	// define wss handle
 	hub := NewHub()
@@ -94,5 +93,5 @@ func main() {
 	})
 
 	// serve http server with TLS
-	serveWithTLS(certPathPub, certPathKey)
+	serveWithTLS(certPathPub, certPathKey, port)
 }
